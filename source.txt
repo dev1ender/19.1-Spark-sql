@@ -1,0 +1,35 @@
+import org.apache.spark.sql.Row
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.types.{StructType,StructField,StringType,NumericType,IntegerType}
+
+var SportsData =sc.textFile("/user/cloudera/19.1/Sports_data.txt")
+val header = SportsData.first()
+SportsData = SportsData.filter(row => row != header)
+
+val SchemaDataFrame = "FirstName:string,LastName:string,Sports:string,MedalType:string,Age:integer,Year:integer,Country:string"
+
+val schema = StructType(SchemaDataFrame.split(",").map(fieldInfo=>StructField(fieldInfo.split(":")(0),if (fieldInfo.split(":")(1).equals("string")) StringType else IntegerType ,true)))
+
+
+val DataRow = SportsData.map(_.split(",")).map(x => Row(x(0), x(1), x(2), x(3), x(4).toInt, x(5).toInt, x(6)))
+
+
+val SportsDataDf = sqlContext.createDataFrame(DataRow,schema)
+
+SportsDataDf.registerTempTable("SportsData")
+
+val sportsCData = sqlContext.sql("Select * from SportsData")
+
+sportsCData.show()
+
+
+--Problem 1
+val GoldMedalWinners = sqlContext.sql("select count(*) as Gold_Medal_Winner,Year from SportsData where MedalType='gold' group by Year")
+
+GoldMedalWinners.show()
+
+
+--Problem 2
+val SilverMedalUSA = sqlContext.sql("SELECT Sports,count(*) as SilverMeadalCount FROM SportsData where MedalType='silver' and Country = 'USA' group by Sports")
+
+SilverMedalUSA.show()
